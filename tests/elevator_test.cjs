@@ -157,4 +157,46 @@ describe('Elevator', function() {
       assert.equal(elevator.checkReturnToLobby(), true)
     }
   })
+
+  it('SCAN dispatch should never traverse more floors than naive FCFS', () => {
+    // run each scenario through both algorithms and prove SCAN is at least as good
+    let scanTotal = 0
+    let naiveTotal = 0
+
+    const scenarios = [
+      { a: new Person('Oliver', 3, 6), b: new Person('Angela', 1, 5), label: 'both up' },
+      { a: new Person('Beverly', 3, 6), b: new Person('James', 5, 1), label: 'A up B down' },
+      { a: new Person('Jeanne', 7, 1), b: new Person('Karl', 2, 8), label: 'A down B up' },
+      { a: new Person('Max', 8, 2), b: new Person('Charlie', 5, 0), label: 'both down' }
+    ]
+
+    scenarios.forEach(({ a, b, label }) => {
+      // run naive FCFS
+      elevator.reset()
+      elevator.requests = [
+        new Person(a.name, a.currentFloor, a.dropOffFloor),
+        new Person(b.name, b.currentFloor, b.dropOffFloor)
+      ]
+      elevator.dispatchNaive()
+      let naiveFloors = elevator.floorsTraversed
+      naiveTotal += naiveFloors
+
+      // run SCAN
+      elevator.reset()
+      elevator.requests = [
+        new Person(a.name, a.currentFloor, a.dropOffFloor),
+        new Person(b.name, b.currentFloor, b.dropOffFloor)
+      ]
+      elevator.dispatch()
+      let scanFloors = elevator.floorsTraversed
+      scanTotal += scanFloors
+
+      assert.isAtMost(scanFloors, naiveFloors,
+        label + ': SCAN (' + scanFloors + ') should not exceed naive (' + naiveFloors + ')')
+    })
+
+    // across all four scenarios combined, SCAN should be strictly better overall
+    assert.isBelow(scanTotal, naiveTotal,
+      'total SCAN (' + scanTotal + ') should beat total naive (' + naiveTotal + ')')
+  })
 });

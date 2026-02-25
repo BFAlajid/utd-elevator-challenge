@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elevator Simulator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: monospace;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    h1 { margin-bottom: 16px; font-size: 1.4em; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .controls label { font-size: 0.85em; }
+    .controls input {
+      width: 50px;
+      padding: 4px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      color: #eee;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .controls button {
+      padding: 6px 14px;
+      background: #0f3460;
+      border: none;
+      color: #eee;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: monospace;
+    }
+
+    .controls button:hover { background: #533483; }
+    #runBtn { background: #533483; }
+    #runBtn:hover { background: #e94560; }
+
+    .stats {
+      font-size: 0.85em;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .stats span { color: #e94560; }
+
+    .shaft {
+      position: relative;
+      width: 220px;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .floor {
+      height: 48px;
+      border-bottom: 1px solid #16213e;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      position: relative;
+    }
+
+    .floor:last-child { border-bottom: none; }
+
+    .floor-num {
+      width: 24px;
+      font-size: 0.75em;
+      color: #888;
+      text-align: center;
+    }
+
+    .floor-people {
+      display: flex;
+      gap: 4px;
+      margin-left: 8px;
+      flex: 1;
+    }
+
+    .person-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 0.55em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .elevator-car {
+      position: absolute;
+      right: 8px;
+      width: 36px;
+      height: 40px;
+      background: #e94560;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7em;
+      transition: top 0.3s ease;
+      z-index: 10;
+    }
+
+    .log {
+      margin-top: 16px;
+      width: 400px;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 0.75em;
+      background: #16213e;
+      padding: 10px;
+      border-radius: 6px;
+      line-height: 1.6;
+    }
+
+    .log div { color: #aaa; }
+    .log .pickup { color: #53c483; }
+    .log .dropoff { color: #e94560; }
+  </style>
+</head>
+<body>
+  <h1>Elevator Simulator</h1>
+
+  <div class="controls">
+    <div>
+      <label>Name</label><br>
+      <input type="text" id="nameInput" value="Bob" style="width:80px">
+    </div>
+    <div>
+      <label>Current Floor</label><br>
+      <input type="number" id="fromInput" value="3" min="0" max="9">
+    </div>
+    <div>
+      <label>Drop-off Floor</label><br>
+      <input type="number" id="toInput" value="7" min="0" max="9">
+    </div>
+    <button id="addBtn">Add Request</button>
+    <button id="runBtn">Run Elevator</button>
+  </div>
+
+  <div class="stats">
+    <div>Floors Traversed: <span id="statFloors">0</span></div>
+    <div>Stops: <span id="statStops">0</span></div>
+    <div>Riders: <span id="statRiders">0</span></div>
+  </div>
+
+  <div class="shaft" id="shaft"></div>
+  <div class="log" id="log"></div>
+
+  <script>
+    const TOTAL_FLOORS = 10
+    const COLORS = ['#e94560', '#533483', '#0f3460', '#53c483', '#f0a500', '#1a9988', '#c74b50', '#5c6bc0']
+
+    let state = {
+      currentFloor: 0,
+      stops: 0,
+      floorsTraversed: 0,
+      requests: [],
+      riders: [],
+      colorIndex: 0
+    }
+
+    let running = false
+
+    function buildShaft() {
+      const shaft = document.getElementById('shaft')
+      shaft.innerHTML = ''
+
+      for (let i = TOTAL_FLOORS - 1; i >= 0; i--) {
+        const floor = document.createElement('div')
+        floor.className = 'floor'
+        floor.id = 'floor-' + i
+        floor.innerHTML = '<div class="floor-num">' + i + '</div><div class="floor-people" id="people-' + i + '"></div>'
+        shaft.appendChild(floor)
+      }
+
+      // add elevator car
+      const car = document.createElement('div')
+      car.className = 'elevator-car'
+      car.id = 'car'
+      car.textContent = 'E'
+      shaft.appendChild(car)
+
+      updateCarPosition()
+    }
+
+    function updateCarPosition() {
+      const car = document.getElementById('car')
+      const floorFromTop = (TOTAL_FLOORS - 1) - state.currentFloor
+      car.style.top = (floorFromTop * 48 + 4) + 'px'
+    }
+
+    function updateStats() {
+      document.getElementById('statFloors').textContent = state.floorsTraversed
+      document.getElementById('statStops').textContent = state.stops
+      document.getElementById('statRiders').textContent = state.riders.length
+    }
+
+    function renderPeople() {
+      // clear all floors
+      for (let i = 0; i < TOTAL_FLOORS; i++) {
+        document.getElementById('people-' + i).innerHTML = ''
+      }
+
+      // show waiting people
+      state.requests.forEach(p => {
+        const container = document.getElementById('people-' + p.currentFloor)
+        if (container) {
+          const dot = document.createElement('div')
+          dot.className = 'person-dot'
+          dot.style.background = p.color
+          dot.textContent = p.name[0]
+          dot.title = p.name + ' (wants floor ' + p.dropOffFloor + ')'
+          container.appendChild(dot)
+        }
+      })
+    }
+
+    function log(msg, type) {
+      const logEl = document.getElementById('log')
+      const div = document.createElement('div')
+      div.className = type || ''
+      div.textContent = msg
+      logEl.appendChild(div)
+      logEl.scrollTop = logEl.scrollHeight
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    function hasStop() {
+      let pickup = state.requests.some(r => r.currentFloor === state.currentFloor)
+      let dropoff = state.riders.some(r => r.dropOffFloor === state.currentFloor)
+      return pickup || dropoff
+    }
+
+    function doPickup() {
+      let waiting = state.requests.filter(r => r.currentFloor === state.currentFloor)
+      waiting.forEach(p => {
+        state.riders.push(p)
+        state.requests.splice(state.requests.indexOf(p), 1)
+        log('Picked up ' + p.name + ' at floor ' + state.currentFloor, 'pickup')
+      })
+    }
+
+    function doDropoff() {
+      let leaving = state.riders.filter(r => r.dropOffFloor === state.currentFloor)
+      leaving.forEach(p => {
+        log('Dropped off ' + p.name + ' at floor ' + state.currentFloor, 'dropoff')
+      })
+      state.riders = state.riders.filter(r => r.dropOffFloor !== state.currentFloor)
+    }
+
+    async function dispatch() {
+      while (state.requests.length || state.riders.length) {
+        let highest = state.currentFloor
+        state.requests.forEach(r => {
+          highest = Math.max(highest, r.currentFloor, r.dropOffFloor)
+        })
+        state.riders.forEach(r => {
+          highest = Math.max(highest, r.dropOffFloor)
+        })
+
+        while (state.currentFloor < highest) {
+          state.currentFloor++
+          state.floorsTraversed++
+          updateCarPosition()
+          updateStats()
+          await sleep(300)
+
+          if (hasStop()) {
+            state.stops++
+            doPickup()
+            doDropoff()
+            renderPeople()
+            updateStats()
+            await sleep(400)
+          }
+        }
+
+        if (!state.requests.length && !state.riders.length) break
+
+        let lowest = state.currentFloor
+        state.requests.forEach(r => {
+          lowest = Math.min(lowest, r.currentFloor, r.dropOffFloor)
+        })
+        state.riders.forEach(r => {
+          lowest = Math.min(lowest, r.dropOffFloor)
+        })
+
+        while (state.currentFloor > lowest) {
+          state.currentFloor--
+          state.floorsTraversed++
+          updateCarPosition()
+          updateStats()
+          await sleep(300)
+
+          if (hasStop()) {
+            state.stops++
+            doPickup()
+            doDropoff()
+            renderPeople()
+            updateStats()
+            await sleep(400)
+          }
+        }
+      }
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      if (running) return
+      const name = document.getElementById('nameInput').value.trim() || 'Rider'
+      const from = parseInt(document.getElementById('fromInput').value)
+      const to = parseInt(document.getElementById('toInput').value)
+
+      if (isNaN(from) || isNaN(to) || from === to || from < 0 || to < 0 || from >= TOTAL_FLOORS || to >= TOTAL_FLOORS) {
+        log('Invalid floors - pick 0 through ' + (TOTAL_FLOORS - 1) + ', and they cannot be the same')
+        return
+      }
+
+      const color = COLORS[state.colorIndex % COLORS.length]
+      state.colorIndex++
+
+      state.requests.push({ name, currentFloor: from, dropOffFloor: to, color })
+      log('Added ' + name + ': floor ' + from + ' -> floor ' + to)
+      renderPeople()
+      updateStats()
+    })
+
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      if (running || state.requests.length === 0) return
+      running = true
+      log('--- Elevator dispatched ---')
+      await dispatch()
+      log('--- All riders delivered ---')
+      running = false
+    })
+
+    buildShaft()
+    updateStats()
+  </script>
+</body>
+</html>

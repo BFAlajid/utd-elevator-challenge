@@ -126,6 +126,15 @@ export default class Elevator {
     }
   }
 
+  // naive FCFS approach — serves each person one at a time in request order.
+  // kept around so we can compare efficiency against SCAN dispatch
+  dispatchNaive() {
+    let queue = [...this.requests]
+    queue.forEach(person => {
+      this.goToFloor(person)
+    })
+  }
+
   reset() {
     this.currentFloor = 0
     this.stops = 0
