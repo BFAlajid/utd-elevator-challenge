@@ -19,8 +19,8 @@ describe('Elevator', function() {
     elevator.goToFloor(mockUser);
 
     // check if the elevator automatically returns to the lobby and set the end values
-    const endFloor = elevator.checkReturnToLoby() ? 0 : 5
-    const floorsTraversed = elevator.checkReturnToLoby() ? 10 : 5
+    const endFloor = elevator.checkReturnToLobby() ? 0 : 5
+    const floorsTraversed = elevator.checkReturnToLobby() ? 10 : 5
 
     assert.equal(elevator.currentFloor, endFloor);
     assert.equal(elevator.floorsTraversed, floorsTraversed)
@@ -32,8 +32,8 @@ describe('Elevator', function() {
     elevator.requests.push(mockUser)
     elevator.goToFloor(mockUser);
 
-    const endFloor = elevator.checkReturnToLoby() ? 0 : 3
-    const floorsTraversed = elevator.checkReturnToLoby() ? 16 : 13
+    const endFloor = elevator.checkReturnToLobby() ? 0 : 3
+    const floorsTraversed = elevator.checkReturnToLobby() ? 16 : 13
 
     assert.equal(elevator.currentFloor, endFloor);
     assert.equal(elevator.floorsTraversed, floorsTraversed)
@@ -97,8 +97,8 @@ describe('Elevator', function() {
     let personA = new Person('Oliver', 3, 6)
     let personB = new Person('Angela', 1, 5)
     elevator.requests = [personA, personB]
-    let endFloor = elevator.checkReturnToLoby() ? 0 : 6
-    let floorsTraversed = elevator.checkReturnToLoby() ? 12 : 6
+    let endFloor = elevator.checkReturnToLobby() ? 0 : 6
+    let floorsTraversed = elevator.checkReturnToLobby() ? 12 : 6
 
     elevator.dispatch()
 
@@ -112,8 +112,8 @@ describe('Elevator', function() {
     personA = new Person('Beverly', 3, 6)
     personB = new Person('James', 5, 1)
     elevator.requests = [personA, personB]
-    endFloor = elevator.checkReturnToLoby() ? 0 : 1
-    floorsTraversed = elevator.checkReturnToLoby() ? 12 : 11
+    endFloor = elevator.checkReturnToLobby() ? 0 : 1
+    floorsTraversed = elevator.checkReturnToLobby() ? 12 : 11
 
     elevator.dispatch()
 
@@ -127,8 +127,8 @@ describe('Elevator', function() {
     personA = new Person('Jeanne', 7, 1)
     personB = new Person('Karl', 2, 8)
     elevator.requests = [personA, personB]
-    endFloor = elevator.checkReturnToLoby() ? 0 : 1
-    floorsTraversed = elevator.checkReturnToLoby() ? 16 : 15
+    endFloor = elevator.checkReturnToLobby() ? 0 : 1
+    floorsTraversed = elevator.checkReturnToLobby() ? 16 : 15
 
     elevator.dispatch()
 
@@ -150,11 +150,11 @@ describe('Elevator', function() {
     assert.equal(elevator.currentFloor, 0)
   })
 
-  it('should check if the elevator must return to the loby when there are no riders and the time is earlier than 12PM', () => {
+  it('should check if the elevator must return to the lobby when there are no riders and the time is earlier than 12PM', () => {
     elevator.currentFloor = 5
 
     if (new Date().getHours() < 12 && !elevator.riders.length) {
-      assert.equal(elevator.checkReturnToLoby(), true)
+      assert.equal(elevator.checkReturnToLobby(), true)
     }
   })
 });

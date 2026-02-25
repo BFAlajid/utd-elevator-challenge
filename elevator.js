@@ -109,17 +109,24 @@ export default class Elevator {
     this.riders = this.riders.filter(r => r.dropOffFloor !== this.currentFloor)
   }
 
-  checkReturnToLoby(){
-    // add your code here
+  // returns true and sends elevator to lobby if no riders and it's before noon,
+  // otherwise returns false and stays on the current floor
+  checkReturnToLobby() {
+    let hour = new Date().getHours()
+    if (this.riders.length === 0 && hour < 12) {
+      this.returnToLobby()
+      return true
+    }
+    return false
   }
 
-  returnToLoby(){
-    while(this.currentFloor > 0){
+  returnToLobby() {
+    while (this.currentFloor > 0) {
       this.moveDown()
     }
   }
 
-  reset(){
+  reset() {
     this.currentFloor = 0
     this.stops = 0
     this.floorsTraversed = 0
