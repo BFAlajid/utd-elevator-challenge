@@ -7,12 +7,49 @@ export default class Elevator {
     this.riders = []
   }
 
-  dispatch(){
-    this.requests.forEach(request => {
-      if(this.riders.length || this.requests.length){
-        this.goToFloor(request)
+  // processes all pending requests using a SCAN algorithm —
+  // sweeps up to the highest needed floor, then back down,
+  // picking up and dropping off everyone along the way
+  dispatch() {
+    while (this.requests.length || this.riders.length) {
+      let highest = this.currentFloor
+      this.requests.forEach(r => {
+        highest = Math.max(highest, r.currentFloor, r.dropOffFloor)
+      })
+      this.riders.forEach(r => {
+        highest = Math.max(highest, r.dropOffFloor)
+      })
+
+      // sweep up
+      while (this.currentFloor < highest) {
+        this.moveUp()
+        if (this.hasStop()) {
+          this.stops++
+          this.hasPickup()
+          this.hasDropoff()
+        }
       }
-    })
+
+      if (!this.requests.length && !this.riders.length) break
+
+      let lowest = this.currentFloor
+      this.requests.forEach(r => {
+        lowest = Math.min(lowest, r.currentFloor, r.dropOffFloor)
+      })
+      this.riders.forEach(r => {
+        lowest = Math.min(lowest, r.dropOffFloor)
+      })
+
+      // sweep down
+      while (this.currentFloor > lowest) {
+        this.moveDown()
+        if (this.hasStop()) {
+          this.stops++
+          this.hasPickup()
+          this.hasDropoff()
+        }
+      }
+    }
   }
 
   // handles a single person's full trip: go to their floor, pick them up, take them to their destination
