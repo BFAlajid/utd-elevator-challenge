@@ -4,7 +4,7 @@ export default class Elevator {
     this.stops = 0
     this.floorsTraversed = 0
     this.requests = []
-    this.riders= []
+    this.riders = []
   }
 
   dispatch(){
@@ -15,38 +15,61 @@ export default class Elevator {
     })
   }
 
-  goToFloor(person){  
-    // add your code here
+  // handles a single person's full trip: go to their floor, pick them up, take them to their destination
+  goToFloor(person) {
+    while (this.currentFloor !== person.currentFloor) {
+      if (this.currentFloor < person.currentFloor) {
+        this.moveUp()
+      } else {
+        this.moveDown()
+      }
+    }
+
+    this.stops++
+    this.hasPickup()
+
+    while (this.currentFloor !== person.dropOffFloor) {
+      if (this.currentFloor < person.dropOffFloor) {
+        this.moveUp()
+      } else {
+        this.moveDown()
+      }
+    }
+
+    this.stops++
+    this.hasDropoff()
   }
 
-  moveUp(){
+  moveUp() {
     this.currentFloor++
     this.floorsTraversed++
-    if(this.hasStop()){
-      this.stops++
-    }    
   }
 
-  moveDown(){
-    if(this.currentFloor > 0){      
+  moveDown() {
+    if (this.currentFloor > 0) {
       this.currentFloor--
       this.floorsTraversed++
-      if(this.hasStop()){
-        this.stops++
-      }
     }
   }
 
-  hasStop(){
-    // add your code here
+  hasStop() {
+    let pickup = this.requests.some(r => r.currentFloor === this.currentFloor)
+    let dropoff = this.riders.some(r => r.dropOffFloor === this.currentFloor)
+    return pickup || dropoff
   }
 
-  hasPickup(){
-    // add your code here
+  // moves everyone waiting on this floor from requests into riders
+  hasPickup() {
+    let waiting = this.requests.filter(r => r.currentFloor === this.currentFloor)
+    waiting.forEach(person => {
+      this.riders.push(person)
+      this.requests.splice(this.requests.indexOf(person), 1)
+    })
   }
 
-  hasDropoff(){
-    // add your code here
+  // removes all riders whose destination is this floor
+  hasDropoff() {
+    this.riders = this.riders.filter(r => r.dropOffFloor !== this.currentFloor)
   }
 
   checkReturnToLoby(){
